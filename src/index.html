@@ -1,4 +1,30 @@
 <!doctype html>
-<html lang="zh"><meta charset="utf-8"><title>手势烟花</title>
-<style>body{margin:0;background:#0a0a12;color:#FFD24A;font-family:system-ui,"Microsoft YaHei",sans-serif}</style>
-<h1 style="padding:1rem">脚手架就绪 ✓</h1>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>手势烟花</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  { "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
+  }}
+  </script>
+</head>
+<body>
+  <div id="stage">
+    <video id="cam" autoplay muted playsinline></video>
+    <canvas id="scene-canvas"></canvas>
+    <div id="overlay">
+      <button id="start">✨ 开始(请允许摄像头)</button>
+      <div id="status">点击开始</div>
+    </div>
+    <div class="hint">
+      ☝ 食指 = 写字 &nbsp; ✊ 握拳 = 停笔 &nbsp; 🖐 张掌 = 烟花 &nbsp; 🫰 比心 = 爱心
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
