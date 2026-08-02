@@ -1,6 +1,8 @@
 import { startCamera } from './camera.js';
 import { HandTracker } from './handTracker.js';
 import { createScene } from './render/scene.js';
+import { ParticlePool } from './systems/particlePool.js';
+import { PALETTE, GRAVITY } from './utils/constants.js';
 import * as THREE from 'three';
 
 const video = document.getElementById('cam');
@@ -21,18 +23,33 @@ btn.addEventListener('click', async () => {
     addEventListener('resize', onResize);
     onResize();
 
-    // 测试:bloom 验证发光球
-    const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(40, 24, 24),
-      new THREE.MeshBasicMaterial({ color: 0xFFD24A })
-    );
-    S.add(ball);
+    const pool = new ParticlePool(S.scene, S.camera);
 
-    status.textContent = '✓ 可见发光金球即 bloom 正常';
-    const t0 = performance.now();
+    // 点击屏幕:在点击处爆一簇带重力的金色火星(验证粒子+bloom)
+    addEventListener('click', (e) => {
+      const pos = S.screenToWorld(e.clientX, e.clientY, innerWidth, innerHeight);
+      for (let i = 0; i < 80; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 80 + Math.random() * 260;
+        pool.spawn({
+          position: pos.clone(),
+          velocity: new THREE.Vector3(Math.cos(a) * sp, Math.sin(a) * sp + 120, 0),
+          color: PALETTE.spark[i % PALETTE.spark.length],
+          size: 6 + Math.random() * 6,
+          life: 0.8 + Math.random() * 0.6,
+          gravity: GRAVITY,
+        });
+      }
+    });
+
+    status.textContent = '✓ 点击屏幕撒火星';
+    let last = performance.now();
     (function loop() {
-      ball.position.set(Math.sin((performance.now() - t0) / 600) * 200, 0, 0);
+      const now = performance.now();
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
       tracker.update();
+      pool.update(dt);
       S.render();
       requestAnimationFrame(loop);
     })();

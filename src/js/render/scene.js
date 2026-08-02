@@ -4,32 +4,46 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 export function createScene(canvas, video) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
   const scene = new THREE.Scene();
-  // 背景由 CSS 提供:body(#0a0a12) + 镜像 <video>(opacity .18);canvas 透明叠加其上
-  scene.background = null;
-  renderer.setClearColor(0x000000, 0);
+  scene.background = new THREE.Color(0x0a0a12);   // 不透明暗背景(让加法混合的火花可见)
 
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 5000);
   const INTERACT_Z = 0;
   camera.position.z = 600;
 
-  // bloom 后处理(对发光粒子/3D 物体生效,透明区域保持透明)
+  // 镜像、低透明度的摄像头背景(场景内平面,放在 z 负方向,不抢戏)
+  const bgTex = new THREE.VideoTexture(video);
+  bgTex.colorSpace = THREE.SRGBColorSpace;
+  bgTex.wrapS = THREE.RepeatWrapping;
+  bgTex.repeat.x = -1; bgTex.offset.x = 1;
+  const bgPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ map: bgTex, transparent: true, opacity: 0.2, depthWrite: false })
+  );
+  bgPlane.position.z = -1;
+  bgPlane.renderOrder = -1;
+  scene.add(bgPlane);
+
+  // bloom 后处理(threshold 0.2:亮火花辉光,暗的摄像头背景不爆)
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 1.2, 0.6, 0.0);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 1.2, 0.6, 0.2);
   composer.addPass(bloom);
 
   function setSize(w, h) {
     renderer.setSize(w, h, false);
     composer.setSize(w, h);
     camera.aspect = w / h;
-    // 调整相机距离,使 z=INTERACT_Z 平面与屏幕像素近似 1:1(便于用屏幕坐标)
     const fovRad = (camera.fov * Math.PI) / 180;
     camera.position.z = (h / 2) / Math.tan(fovRad / 2);
     camera.updateProjectionMatrix();
+    // 背景平面铺满(按它到相机的距离计算可见尺寸)
+    const planeDist = camera.position.z - bgPlane.position.z;
+    const visH = 2 * planeDist * Math.tan(fovRad / 2);
+    bgPlane.scale.set(visH * camera.aspect, visH, 1);
   }
 
   function render() { composer.render(); }
