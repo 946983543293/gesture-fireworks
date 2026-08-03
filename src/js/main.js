@@ -4,6 +4,7 @@ import { createScene } from './render/scene.js';
 import { ParticlePool } from './systems/particlePool.js';
 import { TrailSystem } from './systems/trails.js';
 import { FireworksSystem } from './systems/fireworks.js';
+import { HeartSystem } from './systems/heart.js';
 import { classifyGesture } from './gestures.js';
 import { landmarkToWorld } from './utils/coords.js';
 import { DEBOUNCE_FRAMES } from './utils/constants.js';
@@ -25,13 +26,18 @@ btn.addEventListener('click', async () => {
     const pool = new ParticlePool(S.scene, S.camera);
     const trails = new TrailSystem(pool, S.scene);
     const fireworks = new FireworksSystem(pool);
+    const heart = new HeartSystem(S.scene, pool);
 
-    const onResize = () => S.setSize(innerWidth, innerHeight);
+    const onResize = () => {
+      S.setSize(innerWidth, innerHeight);
+      heart.setScreen(innerWidth, innerHeight);
+    };
     addEventListener('resize', onResize);
     onResize();
 
     let curGesture = 'IDLE', pend = 'IDLE', pendCount = 0;
     let lastGesture = 'IDLE';
+    let heartCool = 0;
     let last = performance.now();
     status.textContent = '☝ 伸食指写字';
 
@@ -43,14 +49,15 @@ btn.addEventListener('click', async () => {
       const hands = tracker.update();
       let raw = 'IDLE';
       let pos = null;
+      let lm = null;
       if (hands.length) {
-        const lm = hands[0].landmarks;
+        lm = hands[0].landmarks;
         raw = classifyGesture(lm);
         const tip = landmarkToWorld(lm[8], innerWidth, innerHeight);
         pos = S.screenToWorld(tip.x, tip.y, innerWidth, innerHeight);
       }
 
-      // 防抖(用于烟花/爱心等触发)
+      // 防抖(用于烟花/爱心触发)
       if (raw === pend) pendCount++;
       else { pend = raw; pendCount = 1; }
       if (pendCount >= DEBOUNCE_FRAMES && pend !== curGesture) curGesture = pend;
@@ -64,8 +71,19 @@ btn.addEventListener('click', async () => {
         fireworks.burstAt(trails.vertices());
         trails.clear();
       }
+
+      // 🫰 比心 rising edge + 冷却:捏合点弹出 3D 爱心
+      if (curGesture === 'HEART' && lastGesture !== 'HEART' && heartCool <= 0 && lm) {
+        const p4 = landmarkToWorld(lm[4], innerWidth, innerHeight);
+        const p8 = landmarkToWorld(lm[8], innerWidth, innerHeight);
+        heart.spawnAt(S.screenToWorld((p4.x + p8.x) / 2, (p4.y + p8.y) / 2, innerWidth, innerHeight));
+        heartCool = 2.5;
+      }
+      heartCool = Math.max(0, heartCool - dt);
+
       lastGesture = curGesture;
 
+      heart.update(dt);
       pool.update(dt);
       S.render();
       status.textContent = raw === 'IDLE' ? '' : `手势: ${raw}`;

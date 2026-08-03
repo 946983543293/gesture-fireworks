@@ -32,7 +32,7 @@ export function classifyGesture(lm) {
   const [, index, middle, ring, pinky] = fingerStates(lm);
   const pinch = dist2D(lm[4], lm[8]) < PINCH_THRESHOLD;   // 拇指尖-食指尖
 
-  if (pinch && middle && ring && pinky) return 'HEART';   // 🫰 捏合 + 三指伸
+  if (pinch && middle && ring) return 'HEART';            // 🫰/👌 捏合 + 中/无名指伸(小指不强制,更宽容)
   if (index && !middle && !ring && !pinky) return 'INDEX';// ☝ 食指
   if (index && middle && ring && pinky) return 'PALM';    // 🖐 张掌(五指含拇指)
   if (!index && !middle && !ring && !pinky) return 'FIST';// ✊ 握拳

@@ -6,7 +6,7 @@ export const PALETTE = {
   spark: ['#FFD24A', '#FF8A1E', '#FFF3B0', '#FFC233'],
 };
 
-export const PINCH_THRESHOLD = 0.06;
+export const PINCH_THRESHOLD = 0.08;
 export const EMA_ALPHA = 0.5;
 export const DEBOUNCE_FRAMES = 3;
 export const PARTICLE_MAX = 20000;
