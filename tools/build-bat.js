@@ -18,6 +18,7 @@ const INDEX_HTML = `<!doctype html><html lang="zh"><head><meta charset="utf-8">
 <canvas id="scene-canvas"></canvas>
 <div id="overlay"><button id="start">✨ 开始(请允许摄像头)</button><div id="status">点击开始</div></div>
 <div class="hint">☝ 食指=写字 &nbsp; ✊ 握拳=停笔 &nbsp; 🖐 张掌=烟花 &nbsp; 👌 OK手势=爱心彩蛋</div>
+<div class="credit">Built by 聆风语</div>
 </div><script src="app.js"></script></body></html>`;
 
 function dl(url, dest) {

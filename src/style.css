@@ -24,4 +24,8 @@ html, body {
   position: absolute; left: 16px; bottom: 16px; font-size: 12px;
   color: #FFD24A77; line-height: 1.6;
 }
+.credit {
+  position: absolute; right: 16px; bottom: 16px; font-size: 12px;
+  color: #FFD24A88; pointer-events: none;
+}
 .error { color: #ff6b6b; }
