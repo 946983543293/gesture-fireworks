@@ -2,8 +2,10 @@ import { startCamera } from './camera.js';
 import { HandTracker } from './handTracker.js';
 import { createScene } from './render/scene.js';
 import { ParticlePool } from './systems/particlePool.js';
-import { PALETTE, GRAVITY } from './utils/constants.js';
-import * as THREE from 'three';
+import { TrailSystem } from './systems/trails.js';
+import { classifyGesture } from './gestures.js';
+import { landmarkToWorld } from './utils/coords.js';
+import { DEBOUNCE_FRAMES } from './utils/constants.js';
 
 const video = document.getElementById('cam');
 const canvas = document.getElementById('scene-canvas');
@@ -19,38 +21,46 @@ btn.addEventListener('click', async () => {
     await tracker.init();
 
     const S = createScene(canvas, video);
-    const onResize = () => S.setSize(innerWidth, innerHeight);
+    const pool = new ParticlePool(S.scene, S.camera);
+    const trails = new TrailSystem(pool, S.scene);
+
+    const onResize = () => {
+      S.setSize(innerWidth, innerHeight);
+    };
     addEventListener('resize', onResize);
     onResize();
 
-    const pool = new ParticlePool(S.scene, S.camera);
-
-    // 点击屏幕:在点击处爆一簇带重力的金色火星(验证粒子+bloom)
-    addEventListener('click', (e) => {
-      const pos = S.screenToWorld(e.clientX, e.clientY, innerWidth, innerHeight);
-      for (let i = 0; i < 80; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const sp = 80 + Math.random() * 260;
-        pool.spawn({
-          position: pos.clone(),
-          velocity: new THREE.Vector3(Math.cos(a) * sp, Math.sin(a) * sp + 120, 0),
-          color: PALETTE.spark[i % PALETTE.spark.length],
-          size: 6 + Math.random() * 6,
-          life: 0.8 + Math.random() * 0.6,
-          gravity: GRAVITY,
-        });
-      }
-    });
-
-    status.textContent = '✓ 点击屏幕撒火星';
+    let curGesture = 'IDLE', pend = 'IDLE', pendCount = 0;
     let last = performance.now();
+    status.textContent = '☝ 伸食指写字';
+
     (function loop() {
       const now = performance.now();
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      tracker.update();
+
+      const hands = tracker.update();
+      let raw = 'IDLE';
+      let pos = null;
+      if (hands.length) {
+        const lm = hands[0].landmarks;
+        raw = classifyGesture(lm);
+        const tip = landmarkToWorld(lm[8], innerWidth, innerHeight);
+        pos = S.screenToWorld(tip.x, tip.y, innerWidth, innerHeight);
+      }
+
+      // 防抖:连续 DEBOUNCE_FRAMES 帧一致才切换
+      if (raw === pend) pendCount++;
+      else { pend = raw; pendCount = 1; }
+      if (pendCount >= DEBOUNCE_FRAMES && pend !== curGesture) curGesture = pend;
+
+      // 用原始手势驱动写字(响应快;trails 内部 penUp-continue 抗抖动断触)
+      if (raw === 'INDEX' && pos) trails.addPoint(pos, dt);
+      else trails.pause();
+
       pool.update(dt);
       S.render();
+      status.textContent = raw === 'IDLE' ? '' : `手势: ${raw}`;
       requestAnimationFrame(loop);
     })();
   } catch (e) {
