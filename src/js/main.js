@@ -38,6 +38,7 @@ btn.addEventListener('click', async () => {
     let curGesture = 'IDLE', pend = 'IDLE', pendCount = 0;
     let lastGesture = 'IDLE';
     let heartCool = 0;
+    let idleTime = 0;
     let last = performance.now();
     status.textContent = '☝ 伸食指写字';
 
@@ -81,12 +82,15 @@ btn.addEventListener('click', async () => {
       }
       heartCool = Math.max(0, heartCool - dt);
 
+      if (hands.length) idleTime = 0; else idleTime += dt;
       lastGesture = curGesture;
 
       heart.update(dt);
       pool.update(dt);
       S.render();
-      status.textContent = raw === 'IDLE' ? '' : `手势: ${raw}`;
+      status.textContent = (!hands.length && idleTime > 4)
+        ? '请把手伸进画面 ☝'
+        : (raw === 'IDLE' ? '' : `手势: ${raw}`);
       requestAnimationFrame(loop);
     })();
   } catch (e) {
