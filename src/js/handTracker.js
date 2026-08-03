@@ -1,8 +1,12 @@
 import { HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import { EMA_ALPHA } from './utils/constants.js';
 
-const WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+// 打包版(esbuild define __PACKAGED__=true)用本地 wasm/模型;开发版走 CDN
+const IS_PACKAGED = typeof __PACKAGED__ !== 'undefined' && __PACKAGED__;
+const WASM = IS_PACKAGED ? './wasm'
+  : 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+const MODEL = IS_PACKAGED ? './hand_landmarker.task'
+  : 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
 export class HandTracker {
   constructor(video) {
