@@ -41,11 +41,13 @@ async function readAllFiles(dir, acc = []) {
   return acc;
 }
 
-// 单文件 .bat:cmd 头用 -EncodedCommand 传 PowerShell(UTF-16LE base64,纯字母数字,无引号问题);
-// 路径经 set "SELF=%~f0" → $env:SELF;脚本读自身 ::DATA:: 后的内嵌 base64 清单逐个解压 + 起本地服务。
+// 单文件 .bat:cmd 头用 -EncodedCommand 传 PowerShell(UTF-16LE base64,无引号问题);
+// 路径经 set "SELF=%~f0" → $env:SELF;脚本读自身 ::DATA:: 后的内嵌 base64 清单解压 + 起本地服务。
+// 端口被占自动换;出错不闪退(停在控制台)。
 function makeBat(files) {
   const manifest = files.map((f) => `${f.rel}|${Buffer.from(f.data).toString('base64')}`).join('\n');
-  const ps = `$ErrorActionPreference='Stop'
+  const ps = `try {
+$ErrorActionPreference='Stop'
 $dir = Join-Path $env:TEMP 'gesture-fireworks'
 Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $dir | Out-Null
@@ -62,11 +64,13 @@ foreach($raw in $data -split [char]10){
   if(-not (Test-Path $parent)){ New-Item -ItemType Directory -Force -Path $parent | Out-Null }
   [IO.File]::WriteAllBytes($rel,$bytes)
 }
-$port = 8731
-$listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add("http://localhost:$port/")
-$listener.Start()
-Write-Host 'Gesture Fireworks running - close this window to exit.'
+$listener = $null
+$port = 0
+foreach($p in 8731,8732,8733,8734,8735,8800,9000,9090){
+  try { $l = New-Object System.Net.HttpListener; $l.Prefixes.Add("http://localhost:$p/"); $l.Start(); $listener = $l; $port = $p; break } catch {}
+}
+if(-not $listener){ throw 'no available port' }
+Write-Host "手势烟花运行中,端口 $port — 关闭此窗口退出。"
 Start-Process "http://localhost:$port/index.html"
 $mime = @{ '.html'='text/html'; '.js'='text/javascript'; '.mjs'='text/javascript'; '.css'='text/css'; '.wasm'='application/wasm'; '.task'='application/octet-stream' }
 while($listener.IsListening){
@@ -81,6 +85,13 @@ while($listener.IsListening){
     $ctx.Response.OutputStream.Write($b,0,$b.Length)
   } else { $ctx.Response.StatusCode = 404 }
   $ctx.Response.Close()
+}
+} catch {
+  Write-Host ''
+  Write-Host '运行出错:' $_.Exception.Message -ForegroundColor Red
+  Write-Host ''
+  Write-Host '请截图此窗口发给开发者,然后按任意键关闭...'
+  [void][Console]::ReadKey($true)
 }`;
   const enc = Buffer.from(ps, 'utf16le').toString('base64');
   const header = [
