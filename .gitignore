@@ -1,3 +1,5 @@
 node_modules/
-dist/
+# dist/ 只纳入最终交付单文件,build/ 等中间产物仍忽略(可 npm run build 重建)
+/dist/*
+!/dist/手势烟花.bat
 *.log

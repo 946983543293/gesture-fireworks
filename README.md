@@ -70,9 +70,9 @@
 │   ├── serve.js                     零依赖开发服务器(localhost:8000,no-store)
 │   └── build-bat.js                 ★ 打包脚本(esbuild + 本地化 wasm/模型 → 单文件 .bat)
 │
-├── dist/                            ← 产出(gitignore)
-│   ├── build/                       app.js / index.html / style.css / wasm/ / hand_landmarker.task
-│   └── 手势烟花.bat                  ★ 最终交付:单文件,双击即玩(约 54MB)
+├── dist/                            ← 产出(部分纳入仓库)
+│   ├── build/                       (gitignore)中间产物:app.js / index.html / wasm/ / hand_landmarker.task,npm run build 可重建
+│   └── 手势烟花.bat                  ★ 最终交付:单文件,双击即玩(约 54MB,✅ 已纳入仓库)
 │
 └── docs/superpowers/
     ├── specs/2026-08-02-gesture-fireworks-design.md   设计 spec
